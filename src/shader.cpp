@@ -8,61 +8,47 @@
 
 #include "shader.h"
 
+#include <cassert>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include <streambuf>
 #include <string>
 #include <vector>
 
-using std::runtime_error;
-
-namespace yage
+namespace
 {
 
-Shader::Shader(const std::string &vertex_path, const std::string &fragment_path)
+void checkCompileStatus(unsigned shader);
+void checkLinkStatus(unsigned program);
+std::string loadFile(std::string file_name);
+
+} // namespace
+
+Shader::Shader(std::string vertex_path, std::string fragment_path)
 {
-    std::string vertex_source, fragment_source;
-    std::ifstream vertex_file, fragment_file;
+    std::string vsource = loadFile(vertex_path);
+    std::string fsource = loadFile(fragment_path);
 
-    vertex_file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-    fragment_file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    const char *vertex_source_c   = vsource.c_str();
+    const char *fragment_source_c = fsource.c_str();
 
-    try {
-        vertex_file.open(vertex_path);
-        fragment_file.open(fragment_path);
-
-        std::ostringstream vertex_stream, fragment_stream;
-        vertex_stream << vertex_file.rdbuf();
-        fragment_stream << fragment_file.rdbuf();
-
-        vertex_file.close();
-        fragment_file.close();
-
-        vertex_source   = vertex_stream.str();
-        fragment_source = fragment_stream.str();
-    } catch (std::ifstream::failure e) {
-        throw runtime_error("File could not be opened: " +
-                            std::string(e.what()));
-    }
-
-    const char *vertex_source_c   = vertex_source.c_str();
-    const char *fragment_source_c = fragment_source.c_str();
-
-    GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+    unsigned vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertex_shader, 1, &vertex_source_c, NULL);
     glCompileShader(vertex_shader);
-    errorCheck(vertex_shader, "vertex");
+    checkCompileStatus(vertex_shader);
 
-    GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    unsigned fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragment_shader, 1, &fragment_source_c, NULL);
     glCompileShader(fragment_shader);
-    errorCheck(fragment_shader, "fragment");
+    checkCompileStatus(fragment_shader);
 
     program_id_ = glCreateProgram();
     glAttachShader(program_id_, vertex_shader);
     glAttachShader(program_id_, fragment_shader);
     glLinkProgram(program_id_);
-    errorCheck(program_id_, "program");
+    checkLinkStatus(program_id_);
 
     glDetachShader(program_id_, vertex_shader);
     glDetachShader(program_id_, fragment_shader);
@@ -84,22 +70,27 @@ void Shader::use() const
     glUseProgram(program_id_);
 }
 
-void Shader::setUniform(const std::string &name, int value) const
+void Shader::setUniform(std::string name, int value) const
 {
     glUniform1i(getUniformLocation(name), static_cast<GLint>(value));
 }
 
-void Shader::setUniform(const std::string &name, float value) const
+void Shader::setUniform(std::string name, float value) const
 {
     glUniform1f(getUniformLocation(name), static_cast<GLfloat>(value));
 }
 
-void Shader::setUniform(const std::string &name, const glm::mat4 &matrix) const
+void Shader::setUniform(std::string name, const glm::mat4 &matrix) const
 {
     glUniformMatrix4fv(getUniformLocation(name), 1, GL_FALSE, &(matrix[0][0]));
 }
 
-GLint Shader::getUniformLocation(const std::string &uniform_name) const
+void Shader::setUniform(std::string name, const glm::vec4 &vec) const
+{
+    glUniform4f(getUniformLocation(name), vec.x, vec.y, vec.z, vec.w);
+}
+
+GLint Shader::getUniformLocation(std::string uniform_name) const
 {
     GLuint location = glGetUniformLocation(program_id_, uniform_name.c_str());
     if (location == GL_INVALID_INDEX) {
@@ -108,25 +99,50 @@ GLint Shader::getUniformLocation(const std::string &uniform_name) const
     return location;
 }
 
-void Shader::errorCheck(GLuint shader, const std::string &shader_type) const
+namespace
+{
+
+void checkCompileStatus(unsigned shader)
 {
     int success;
-    char info_log[1024];
-    if (shader_type != std::string("program")) {
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-        if (!success) {
-            glGetShaderInfoLog(shader, 1024, NULL, info_log);
-            throw runtime_error(shader_type +
-                                " failed to compile: " + std::string(info_log));
-        }
-    } else {
-        glGetProgramiv(shader, GL_LINK_STATUS, &success);
-        if (!success) {
-            glGetProgramInfoLog(shader, 1024, NULL, info_log);
-            throw runtime_error(shader_type +
-                                " failed to link: " + std::string(info_log));
-        }
+    char infoLog[512];
+
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(shader, 512, NULL, infoLog);
+        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
+                  << infoLog << std::endl;
     }
+    assert(success);
 }
 
-} // namespace yage
+void checkLinkStatus(unsigned program)
+{
+    int success;
+    char infoLog[512];
+
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(program, 512, NULL, infoLog);
+        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
+                  << infoLog << std::endl;
+    }
+    assert(success);
+}
+
+std::string loadFile(std::string file_name)
+{
+    std::ifstream t(file_name);
+    std::string str;
+
+    t.seekg(0, std::ios::end);
+    str.reserve(t.tellg());
+    t.seekg(0, std::ios::beg);
+
+    str.assign((std::istreambuf_iterator<char>(t)),
+               std::istreambuf_iterator<char>());
+
+    return str;
+}
+
+} // namespace

@@ -1,18 +1,14 @@
+#include "shader.h"
+
 #include <glad/glad.h>
 
 #include <GLFW/glfw3.h>
 
-#include <cassert>
-#include <fstream>
 #include <iostream>
-#include <streambuf>
 #include <string>
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *window);
-std::string loadFile(std::string file_name);
-void checkCompileStatus(unsigned shader);
-void checkLinkStatus(unsigned program);
 
 float vertices[] = {
     0.5f,  0.5f,  0.0f, // top right
@@ -29,11 +25,6 @@ unsigned int indices[] = {
 
 int main()
 {
-    std::string vSource              = loadFile("res/simple.vert");
-    std::string fSource              = loadFile("res/simple.frag");
-    const char *vertexShaderSource   = vSource.c_str();
-    const char *fragmentShaderSource = fSource.c_str();
-
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -74,38 +65,22 @@ int main()
 
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    unsigned int vertexShader;
-    vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
-
-    checkCompileStatus(vertexShader);
-
-    unsigned int fragmentShader;
-    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
-
-    checkCompileStatus(fragmentShader);
-
-    unsigned int shaderProgram;
-    shaderProgram = glCreateProgram();
-
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
                           (void *)0);
     glEnableVertexAttribArray(0);
 
-    glUseProgram(shaderProgram);
+    Shader shader("res/simple.vert", "res/simple.frag");
+    shader.use();
+
+    float timeValue;
+    float greenValue;
 
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
+
+        timeValue = glfwGetTime();
+        greenValue = (sin(timeValue) / 2.f) + 0.5f;
+        shader.setUniform("ourColour", glm::vec4(0.f, greenValue, 0.f, 1.f));
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -129,47 +104,4 @@ void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-}
-
-std::string loadFile(std::string file_name)
-{
-    std::ifstream t(file_name);
-    std::string str;
-
-    t.seekg(0, std::ios::end);
-    str.reserve(t.tellg());
-    t.seekg(0, std::ios::beg);
-
-    str.assign((std::istreambuf_iterator<char>(t)),
-               std::istreambuf_iterator<char>());
-
-    return str;
-}
-
-void checkCompileStatus(unsigned shader)
-{
-    int success;
-    char infoLog[512];
-
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(shader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
-                  << infoLog << std::endl;
-    }
-    assert(success);
-}
-
-void checkLinkStatus(unsigned program)
-{
-    int success;
-    char infoLog[512];
-
-    glGetProgramiv(program, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(program, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
-                  << infoLog << std::endl;
-    }
-    assert(success);
 }
