@@ -1,0 +1,29 @@
+# general directories to ignore
+bin
+build
+build_*
+CMakeFiles
+Testing
+html
+
+# specific directory to ignore
+/docs/Doxyfile
+
+# extensions to ignore
+*.o
+*.out
+*.a
+
+# emacs
+*.#
+*~
+
+# general files to ignore
+CMakeCache.txt
+Makefile
+GPATH
+GTAGS
+GRTAGS
+
+# do not upload log files
+*.log
