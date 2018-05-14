@@ -12,7 +12,6 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <stdexcept>
 #include <streambuf>
 #include <string>
 #include <vector>
@@ -93,9 +92,7 @@ void Shader::setUniform(std::string name, const glm::vec4 &vec) const
 GLint Shader::getUniformLocation(std::string uniform_name) const
 {
     GLuint location = glGetUniformLocation(program_id_, uniform_name.c_str());
-    if (location == GL_INVALID_INDEX) {
-        throw std::runtime_error("'" + uniform_name + "' not found");
-    }
+    assert(location != GL_INVALID_INDEX);
     return location;
 }
 
