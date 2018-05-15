@@ -160,23 +160,15 @@ int main()
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
 
-        glm::mat4 trans(1.0);
-        trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
-        trans = glm::rotate(trans, (float)glfwGetTime(),
-                            glm::vec3(0.0f, 0.0f, 1.0f));
-
-        glm::mat4 model(1.f);
-        model = glm::rotate(model, glm::radians(-55.0f),
-                            glm::vec3(1.0f, 0.0f, 0.0f));
-
         glm::mat4 view(1.f);
         // note that we're translating the scene in the reverse direction of
         // where we want to move
         view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+        view = glm::rotate(view, glm::radians(10.f * (float)glfwGetTime()), glm::vec3(1.f, 1.f, 1.f));
 
         glm::mat4 projection;
         projection =
-            glm::perspective(glm::radians(45.0f), 600.f / 800.f, 0.1f, 100.0f);
+            glm::perspective(glm::radians(45.f), 600.f / 800.f, 0.1f, 100.0f);
 
         shader.setUniform("view", view);
         shader.setUniform("projection", projection);
@@ -187,7 +179,7 @@ int main()
         for (unsigned int i = 0; i < 10; i++) {
             glm::mat4 model(1.f);
             model       = glm::translate(model, cubePositions[i]);
-            float angle = 20.0f * i;
+            float angle = 20.0f * i * glfwGetTime();
             model       = glm::rotate(model, glm::radians(angle),
                                 glm::vec3(1.0f, 0.3f, 0.5f));
             shader.setUniform("model", model);
