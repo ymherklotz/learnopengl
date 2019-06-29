@@ -81,21 +81,6 @@ int main()
     Shader shader("res/shaders/simple.vert", "res/shaders/simple.frag");
     shader.use();
 
-    initTextures();
-
-    // Put the texture on the GPU
-    makeTexture(GL_TEXTURE0, GL_RGB, "res/img/container.jpg");
-
-    // Assign texture to the texture1 variable
-    shader.setUniform("texture1", 0);
-
-    // Flip the texture because of different coordinates and load smiley face
-    stbi_set_flip_vertically_on_load(true);
-    makeTexture(GL_TEXTURE1, GL_RGBA, "res/img/awesomeface.png");
-
-    // Assign the smiley texture to texture2
-    shader.setUniform("texture2", 1);
-
     // Miscellaneous GL option
     glEnable(GL_DEPTH_TEST);
 
